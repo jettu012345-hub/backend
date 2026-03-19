@@ -1,0 +1,341 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  admin
+  captain
+  player
+  public
+  developer
+}
+
+enum Gender {
+  Male
+  Female
+  Prefer_not_to_say
+}
+
+enum PlayingRole {
+  Batsman
+  Bowler
+  All_Rounder
+  Wicketkeeper
+  Wicket_keeper_batter
+}
+
+enum BattingStyle {
+  Right_hand_bat
+  Left_hand_bat
+  RHB
+  LHB
+}
+
+enum MatchFormat {
+  T10
+  T20
+  Fifty_overs @map("50 overs")
+  custom
+}
+
+enum MatchStatus {
+  scheduled
+  live
+  completed
+  abandoned
+  rescheduled
+  upcoming
+  delayed
+  walkover
+}
+
+enum TournamentCategory {
+  OPEN
+  CORPORATE
+  COMMUNITY
+  SCHOOL
+  BOX_CRICKET
+  SERIES
+  OTHER
+}
+
+enum PitchType {
+  ROUGH
+  CEMENT
+  TURF
+  ASTROTURF
+  MATTING
+}
+
+enum MatchType {
+  Limited_Overs @map("Limited Overs")
+  The_Hundred @map("The Hundred")
+  Box_Cricket @map("Box Cricket")
+  Unlimited_Overs @map("Unlimited Overs")
+  Test_Match @map("Test Match")
+  Pair_Cricket @map("Pair Cricket")
+}
+
+enum BallType {
+  Tennis_Ball @map("Tennis Ball")
+  Leather_Ball @map("Leather Ball")
+  Other_Ball @map("Other Ball")
+}
+
+enum TournamentType {
+  League
+  Knockout
+  League_Knockout @map("League + Knockout")
+}
+
+enum TournamentStep {
+  SETTINGS
+  TEAMS
+  ROUNDS
+  GROUPS
+  MATCHES
+  PUBLISHED
+}
+
+enum PaymentStatus {
+  Paid
+  Partial
+  Pending
+  verification_pending
+  rejected
+}
+
+enum NotificationType {
+  payment
+  match
+  tournament
+  system
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  fullName       String    @map("full_name")
+  username       String?   @unique
+  mobileNumber   String    @unique @map("mobile_number")
+  password       String
+  email          String?
+  role           Role      @default(player)
+  profileImage   String?   @map("profile_image")
+  isApproved     Boolean   @default(false) @map("is_approved")
+  isActive       Boolean   @default(true) @map("is_active")
+  teams          Int[]     @default([])
+  followers      Int[]     @default([])
+  following      Int[]     @default([])
+  
+  // Relations
+  administeredTeams Team[] @relation("AdministeredTeams")
+  scoredTeams       Team[] @relation("ScoredTeams")
+  players           Player[]
+  scoredMatches     Match[] @relation("Scorer")
+  createdMatches    Match[] @relation("Creator")
+  strikerMatches    Match[] @relation("Striker")
+  nonStrikerMatches Match[] @relation("NonStriker")
+  bowlerMatches     Match[] @relation("Bowler")
+  payments          Payment[] @relation("MemberPayments")
+  verifiedPayments  Payment[] @relation("VerifiedPayments")
+  tournaments       Tournament[] @relation("AdministeredTournaments")
+  notifications     Notification[]
+
+  @@map("members")
+}
+
+model Team {
+  id           Int      @id @default(autoincrement())
+  name         String
+  format       String   @default("T20")
+  adminId      Int?     @map("admin_id")
+  scorerId     Int?     @map("scorer_id")
+  players      Int[]    @default([])
+  collections  Int[]    @default([])
+  stats        Json     @default("{\"totalMatches\": 0, \"wins\": 0, \"losses\": 0, \"winPercentage\": 0, \"totalRuns\": 0, \"totalWickets\": 0, \"nrr\": 0}")
+
+  admin        User?    @relation("AdministeredTeams", fields: [adminId], references: [id])
+  scorer       User?    @relation("ScoredTeams", fields: [scorerId], references: [id])
+  
+  matchesA     Match[]  @relation("TeamA")
+  matchesB     Match[]  @relation("TeamB")
+  wonMatches   Match[]  @relation("Winner")
+  teamCollections Collection[]
+  tournamentWinner Tournament[] @relation("TournamentWinner")
+
+  @@map("teams")
+}
+
+model Player {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  location     String   @default("Madurai")
+  dob          DateTime?
+  gender       Gender   @default(Male)
+  views        Int      @default(0)
+  playingRole  PlayingRole @default(Batsman) @map("playing_role")
+  battingStyle BattingStyle @default(Right_hand_bat) @map("batting_style")
+  bowlingStyle String   @default("Right-arm medium") @map("bowling_style")
+  jerseyNumber Int?     @map("jersey_number")
+  stats        Json     @default("{\"batting\": {\"runs\": 0, \"matches\": 0, \"innings\": 0, \"highestScore\": 0, \"average\": 0, \"strikeRate\": 0, \"ballsFaced\": 0, \"fours\": 0, \"sixes\": 0, \"fifties\": 0, \"hundreds\": 0}, \"bowling\": {\"matches\": 0, \"overs\": 0, \"wickets\": 0, \"runsConceded\": 0, \"bestBowling\": {\"wickets\": 0, \"runs\": 0}, \"average\": 0, \"economy\": 0, \"strikeRate\": 0, \"maidens\": 0}, \"runs\": 0, \"wickets\": 0, \"matches\": 0, \"avg\": 0, \"sr\": 0, \"er\": 0}")
+
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@map("players")
+}
+
+model Match {
+  id           Int      @id @default(autoincrement())
+  teamAId      Int      @map("team_a_id")
+  teamBId      Int      @map("team_b_id")
+  scorerId     Int?     @map("scorer_id")
+  createdById  Int?     @map("created_by_id")
+  overs        Int      @default(20)
+  matchFormat  MatchFormat @default(T20) @map("match_format")
+  type         String?
+  venue        String?
+  toss         Json     @default("{\"winner\": null, \"decision\": null}")
+  playingXIA   Int[]    @default([]) @map("playing_xi_a")
+  playingXIB   Int[]    @default([]) @map("playing_xi_b")
+  battingTeamId Int?    @map("batting_team_id")
+  bowlingTeamId Int?    @map("bowling_team_id")
+  strikerId    Int?     @map("striker_id")
+  nonStrikerId Int?     @map("non_striker_id")
+  currentBowlerId Int?  @map("current_bowler_id")
+  innings      Int      @default(1)
+  target       Int?
+  winnerId     Int?     @map("winner_id")
+  result       String?
+  tournamentId Int?     @map("tournament_id")
+  stage        String   @default("none")
+  balls        Json     @default("[]")
+  awards       Json     @default("{\"manOfTheMatch\": null, \"manOfTheMatchDetails\": null, \"bestPartnership\": null, \"bestBatsman\": null, \"bestBowler\": null}")
+  status       MatchStatus @default(scheduled)
+  matchNumber  Int?     @map("match_number")
+  liveLink     String?  @map("live_link")
+  date         DateTime @default(now())
+
+  teamA        Team     @relation("TeamA", fields: [teamAId], references: [id])
+  teamB        Team     @relation("TeamB", fields: [teamBId], references: [id])
+  scorer       User?    @relation("Scorer", fields: [scorerId], references: [id])
+  creator      User?    @relation("Creator", fields: [createdById], references: [id])
+  battingTeam  Team?    @relation(fields: [battingTeamId], references: [id], map: "match_batting_team_fkey")
+  bowlingTeam  Team?    @relation(fields: [bowlingTeamId], references: [id], map: "match_bowling_team_fkey")
+  striker      User?    @relation("Striker", fields: [strikerId], references: [id])
+  nonStriker   User?    @relation("NonStriker", fields: [nonStrikerId], references: [id])
+  currentBowler User?   @relation("Bowler", fields: [currentBowlerId], references: [id])
+  winner       Team?    @relation("Winner", fields: [winnerId], references: [id])
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
+
+  @@map("matches")
+}
+
+model Collection {
+  id               Int      @id @default(autoincrement())
+  teamId           Int?     @map("team_id")
+  tournamentId     Int?     @map("tournament_id")
+  title            String
+  description      String?
+  amountPerMember  Decimal  @map("amount_per_member") @db.Decimal(10, 2)
+  expectedAmt      Decimal  @default(0) @map("expected_amt") @db.Decimal(10, 2)
+  collectedAmt     Decimal  @default(0) @map("collected_amt") @db.Decimal(10, 2)
+  dueDate          DateTime? @map("due_date")
+
+  team             Team?    @relation(fields: [teamId], references: [id])
+  tournament       Tournament? @relation(fields: [tournamentId], references: [id])
+  payments         Payment[]
+  expenses         Expense[]
+
+  @@map("collections")
+}
+
+model Payment {
+  id               Int      @id @default(autoincrement())
+  memberId         Int      @map("member_id")
+  collectionId     Int      @map("collection_id")
+  status           PaymentStatus @default(Pending)
+  amount           Decimal  @default(0) @db.Decimal(10, 2)
+  proofImage       String?  @map("proof_image")
+  method           String?
+  transactionId    String?  @map("transaction_id")
+  submittedAt      DateTime? @map("submitted_at")
+  verifiedBy       Int?     @map("verified_by")
+  verifiedAt       DateTime? @map("verified_at")
+
+  member           User     @relation("MemberPayments", fields: [memberId], references: [id])
+  collection       Collection @relation(fields: [collectionId], references: [id])
+  verifier         User?    @relation("VerifiedPayments", fields: [verifiedBy], references: [id])
+
+  @@map("payments")
+}
+
+model Tournament {
+  id               Int      @id @default(autoincrement())
+  name             String
+  description      String?
+  city             String?
+  ground           String?
+  organiserName    String?  @map("organiser_name")
+  organiserContact Json     @default("{\"countryCode\": \"+91\", \"phoneNumber\": \"\"}") @map("organiser_contact")
+  contactPermission Boolean @default(false) @map("contact_permission")
+  tournamentCategory TournamentCategory @default(OPEN) @map("tournament_category")
+  pitchType        PitchType @default(TURF) @map("pitch_type")
+  matchType        MatchType @default(Limited_Overs) @map("match_type")
+  ballType         BallType @default(Leather_Ball) @map("ball_type")
+  tags             String[] @default([])
+  banner           String?
+  logo             String?
+  startDate        DateTime? @map("start_date")
+  endDate          DateTime? @map("end_date")
+  format           String   @default("T20")
+  tournamentType   TournamentType @default(League) @map("tournament_type")
+  oversPerMatch    Int      @default(20) @map("overs_per_match")
+  adminId          Int?     @map("admin_id")
+  teams            Int[]    @default([])
+  matches          Int[]    @default([])
+  fixtureConfig    Json     @default("{\"maxMatchesPerTeamPerDay\": 1, \"gapBetweenMatches\": 1, \"availableGrounds\": []}") @map("fixture_config")
+  groups           Json     @default("[]")
+  rounds           Json     @default("[]")
+  standings        Json     @default("[]")
+  currentStep      TournamentStep @default(SETTINGS) @map("current_step")
+  status           String   @default("upcoming")
+  winnerId         Int?     @map("winner_id")
+
+  admin            User?    @relation("AdministeredTournaments", fields: [adminId], references: [id])
+  winner           Team?    @relation("TournamentWinner", fields: [winnerId], references: [id])
+  allMatches       Match[]
+  allCollections   Collection[]
+
+  @@map("tournaments")
+}
+
+model Expense {
+  id               Int      @id @default(autoincrement())
+  collectionId     Int?     @map("collection_id")
+  title            String
+  amount           Decimal  @db.Decimal(10, 2)
+  date             DateTime @default(now())
+
+  collection       Collection? @relation(fields: [collectionId], references: [id])
+
+  @@map("expenses")
+}
+
+model Notification {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @map("user_id")
+  title            String
+  message          String
+  type             NotificationType @default(match)
+  read             Boolean  @default(false)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
