@@ -165,6 +165,8 @@ model Team {
   matchesA     Match[]  @relation("TeamA")
   matchesB     Match[]  @relation("TeamB")
   wonMatches   Match[]  @relation("Winner")
+  battingMatches Match[] @relation("BattingTeam")
+  bowlingMatches Match[] @relation("BowlingTeam")
   teamCollections Collection[]
   tournamentWinner Tournament[] @relation("TournamentWinner")
 
@@ -224,8 +226,8 @@ model Match {
   teamB        Team     @relation("TeamB", fields: [teamBId], references: [id])
   scorer       User?    @relation("Scorer", fields: [scorerId], references: [id])
   creator      User?    @relation("Creator", fields: [createdById], references: [id])
-  battingTeam  Team?    @relation(fields: [battingTeamId], references: [id], map: "match_batting_team_fkey")
-  bowlingTeam  Team?    @relation(fields: [bowlingTeamId], references: [id], map: "match_bowling_team_fkey")
+  battingTeam  Team?    @relation("BattingTeam", fields: [battingTeamId], references: [id], map: "match_batting_team_fkey")
+  bowlingTeam  Team?    @relation("BowlingTeam", fields: [bowlingTeamId], references: [id], map: "match_bowling_team_fkey")
   striker      User?    @relation("Striker", fields: [strikerId], references: [id])
   nonStriker   User?    @relation("NonStriker", fields: [nonStrikerId], references: [id])
   currentBowler User?   @relation("Bowler", fields: [currentBowlerId], references: [id])
