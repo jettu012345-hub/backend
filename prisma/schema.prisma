@@ -128,9 +128,9 @@ model User {
   profileImage   String?   @map("profile_image")
   isApproved     Boolean   @default(false) @map("is_approved")
   isActive       Boolean   @default(true) @map("is_active")
-  teams          Int[]     @default([])
-  followers      Int[]     @default([])
-  following      Int[]     @default([])
+  teams          Json      @default("[]")
+  followers      Json      @default("[]")
+  following      Json      @default("[]")
   
   // Relations
   administeredTeams Team[] @relation("AdministeredTeams")
@@ -155,8 +155,8 @@ model Team {
   format       String   @default("T20")
   adminId      Int?     @map("admin_id")
   scorerId     Int?     @map("scorer_id")
-  players      Int[]    @default([])
-  collections  Int[]    @default([])
+  players      Json     @default("[]")
+  collections  Json     @default("[]")
   stats        Json     @default("{\"totalMatches\": 0, \"wins\": 0, \"losses\": 0, \"winPercentage\": 0, \"totalRuns\": 0, \"totalWickets\": 0, \"nrr\": 0}")
 
   admin        User?    @relation("AdministeredTeams", fields: [adminId], references: [id])
@@ -202,8 +202,8 @@ model Match {
   type         String?
   venue        String?
   toss         Json     @default("{\"winner\": null, \"decision\": null}")
-  playingXIA   Int[]    @default([]) @map("playing_xi_a")
-  playingXIB   Int[]    @default([]) @map("playing_xi_b")
+  playingXIA   Json     @default("[]") @map("playing_xi_a")
+  playingXIB   Json     @default("[]") @map("playing_xi_b")
   battingTeamId Int?    @map("batting_team_id")
   bowlingTeamId Int?    @map("bowling_team_id")
   strikerId    Int?     @map("striker_id")
@@ -289,7 +289,7 @@ model Tournament {
   pitchType        PitchType @default(TURF) @map("pitch_type")
   matchType        MatchType @default(Limited_Overs) @map("match_type")
   ballType         BallType @default(Leather_Ball) @map("ball_type")
-  tags             String[] @default([])
+  tags             Json      @default("[]")
   banner           String?
   logo             String?
   startDate        DateTime? @map("start_date")
@@ -298,8 +298,8 @@ model Tournament {
   tournamentType   TournamentType @default(League) @map("tournament_type")
   oversPerMatch    Int      @default(20) @map("overs_per_match")
   adminId          Int?     @map("admin_id")
-  teams            Int[]    @default([])
-  matches          Int[]    @default([])
+  teams            Json      @default("[]")
+  matches          Json      @default("[]")
   fixtureConfig    Json     @default("{\"maxMatchesPerTeamPerDay\": 1, \"gapBetweenMatches\": 1, \"availableGrounds\": []}") @map("fixture_config")
   groups           Json     @default("[]")
   rounds           Json     @default("[]")
